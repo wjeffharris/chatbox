@@ -6,7 +6,7 @@ App {
 }
 
 .App-header {
-  background-color: #262626;
+  background-color: orange;
   overflow: visible;
   width: 100%;
   text-align: center;
@@ -84,16 +84,23 @@ input {
   padding: 5px;
   font-size: 16px;
   border-radius: 8px;
-  border: 1px solid orangered;
+  border: 1px solid black;
   flex-grow: 1;
 }
 
 button {
   padding: 5px 10px;
   font-size: 16px;
-  background-color: orangered;
+  background-color: white;
   color: white;
-  border: none;
+  border-color: black;
   border-radius: 8px;
   margin-left: 10px;
+  color: black;
+  
+}
+button:hover{
+  background-color:cornflowerblue;
+  border: cornflowerblue;
+  
 }
