@@ -1,60 +1,98 @@
-import React, {Component} from 'react';
-import './App.css';
-import Message from './Components/Message'
-import Input from './Components/Input'
-
-function randomName() {
-  const adjectives = ["autumn", "hidden", "bitter", "misty", "silent", "empty", "dry", "dark", "summer", "icy", "delicate", "quiet", "white", "cool", "spring", "winter", "patient", "twilight", "dawn", "crimson", "wispy", "weathered", "blue", "billowing", "broken", "cold", "damp", "falling", "frosty", "green", "long", "late", "lingering", "bold", "little", "morning", "muddy", "old", "red", "rough", "still", "small", "sparkling", "throbbing", "shy", "wandering", "withered", "wild", "black", "young", "holy", "solitary", "fragrant", "aged", "snowy", "proud", "floral", "restless", "divine", "polished", "ancient", "purple", "lively", "nameless"];
-  const nouns = ["waterfall", "river", "breeze", "moon", "rain", "wind", "sea", "morning", "snow", "lake", "sunset", "pine", "shadow", "leaf", "dawn", "glitter", "forest", "hill", "cloud", "meadow", "sun", "glade", "bird", "brook", "butterfly", "bush", "dew", "dust", "field", "fire", "flower", "firefly", "feather", "grass", "haze", "mountain", "night", "pond", "darkness", "snowflake", "silence", "sound", "sky", "shape", "surf", "thunder", "violet", "water", "wildflower", "wave", "water", "resonance", "sun", "wood", "dream", "cherry", "tree", "fog", "frost", "voice", "paper", "frog", "smoke", "star"];
-  const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
-  const noun = nouns[Math.floor(Math.random() * nouns.length)];
-  return adjective + noun;
-}
-
-function randomColor() {
-  return '#' + Math.floor(Math.random() * 0xFFFFFF).toString(16);
-}
+import React, { Component } from "react";
+import authService from "./auth/service";
+import Conversations from "./Conversations";
+import Users from "./Users";
+import {
+  getClient,
+  initialiseClient,
+  isClientInitialised,
+  resetClient
+} from "./chat/service";
 
 class App extends Component {
-  state = {
-    messages: [
-      {
-        text: "This is a test message!",
-        member: {
-          color: "blue",
-          username: "bluemoon"
-        }
-      }
-    ],
-    member: {
-      username: randomName(),
-      color: randomColor()
-    }
+  constructor(props) {
+    super(props);
+    authService.loginCallback = this.loggedIn;
+    authService.logoutCallback = this.loggedOut;
+    const loggedIn = authService.isAuthenticated();
+    if (loggedIn && isClientInitialised()) {
+      const { chatClient, user } = getClient();
+      this.state = { loggedIn, page: "conversations", chatClient, user };
+    } else this.state = { loggedIn, page: "conversations" };
   }
-  onSendMessage = (message) => {
-    const messages = this.state.messages
-    messages.push({
-      text: message,
-      member: this.state.member
-    })
-    this.setState({messages: messages})
-  }
+
+  loggedIn = async ({ email, nickname }) => {
+    const { chatClient, user } = await initialiseClient(email, nickname);
+    this.setState({ loggedIn: true, chatClient, user });
+  };
+
+  loggedOut = () => {
+    resetClient();
+    this.setState({ loggedIn: false });
+  };
+
+  switchPage = page => this.setState({ page });
+
   render() {
+    const showConversations =
+      this.state.loggedIn && this.state.page === "conversations";
+    const showUsers =
+      this.state.loggedIn && this.state.page !== "conversations";
+
     return (
-      <div className="App">
-        <div className="App-header">
-        <h1>The Room</h1>
-      </div>
-        <Message
-          messages={this.state.messages}
-          currentMember={this.state.member}
-        />
-        <Input
-        onSendMessage={this.onSendMessage}
-      />
-    
+      <div>
+        <nav className="navbar navbar-dark bg-dark">
+          <a className="navbar-brand text-light">Messenger</a>
+          {this.state.loggedIn ? (
+            <div>
+              <button
+                onClick={() => this.setState({ page: "conversations" })}
+                type="button"
+                className="btn btn-link text-light"
+              >
+                Conversations
+              </button>
+              <button
+                onClick={() => this.setState({ page: "users" })}
+                type="button"
+                className="btn btn-link text-light"
+              >
+                Users
+              </button>
+              <button
+                onClick={() => authService.logout()}
+                className="btn btn-light"
+              >
+                Log Out
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => authService.login()}
+              className="btn btn-light"
+            >
+              Log In
+            </button>
+          )}
+        </nav>
+        <div>
+          {showConversations && (
+            <Conversations
+              chatClient={this.state.chatClient}
+              userId={this.state.user.id}
+            />
+          )}
+          {showUsers && (
+            <Users
+              chatClient={this.state.chatClient}
+              user={this.state.user}
+              switchPage={this.switchPage}
+            />
+          )}
+        </div>
       </div>
     );
   }
 }
+
 export default App;
